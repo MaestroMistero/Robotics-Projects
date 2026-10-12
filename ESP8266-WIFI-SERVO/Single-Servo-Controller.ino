@@ -1,0 +1,71 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <Servo.h>
+
+const char* ssid = "Mistero-Servo"; // You can change your wifi-name
+const char* password = "MisteroV"; // You can change your password
+Servo myServo;
+
+ESP8266WebServer server(80);
+
+int servoPin = D7;   // GPIO2 
+int servoPos = 0;
+#define LED_PIN LED_BUILTIN
+
+void handleRoot() {
+  String html = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mistero-Servo-Control</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    button { font-size: 20px; padding: 15px 30px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Servo Control</h2>
+  <button onclick="fetch('/set?pos=120'); setTimeout(() => { fetch('/set?pos=90'); }, 400);">120°</button>   //Change the degree 120 to your convenience automatically it comes to 90 degree after turning on off the switch 
+  <button onclick="fetch('/set?pos=60'); setTimeout(() => { fetch('/set?pos=90'); }, 400);">60°</button>    // Change the degree 60 to your convenience automatically it comes to 90 degree after turning on off the switch
+</body>
+</html>
+)rawliteral";
+
+  server.send(200, "text/html", html);
+}
+
+void handleSet() {
+  if (server.hasArg("pos")) {
+    servoPos = server.arg("pos").toInt();
+    servoPos = constrain(servoPos, 0, 180);
+    myServo.write(servoPos);
+    server.send(200, "text/plain", "Servo set to " + String(servoPos));
+  } else {
+    server.send(400, "text/plain", "Missing position");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH); // LED OFF (active LOW)  // Want to ON the onboard led just replace HIGH to LOW
+
+  myServo.attach(servoPin, 500, 2500);
+  myServo.write(90); // Initial position of servo, You can change at your convenience 
+
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+
+  server.on("/", handleRoot);
+  server.on("/set", handleSet);
+  server.begin();
+  Serial.println("Web server started");
+}
+
+void loop() {
+  server.handleClient();
+}
+
+
