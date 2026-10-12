@@ -1,1 +1,117 @@
+# Mistero-Servo-Control-ESP8266
+Password for Wifi - MisteroV
 
+Wifi-Name - Mistero-Servo
+# Preference-Url
+```http://arduino.esp8266.com/stable/package_esp8266com_index.json```
+# Search On Default Browser
+192.168.4.1
+# Connection
+Connect the Servo-PWM(orange wire) to D7 of esp8266
+
+Connect the  Servo red wire to Vin of esp8266 or external 5v power source
+
+Connect Servo grey wire to gnd of esp8266
+
+NOTE- Use this connection only if powering the esp8266 through micro usb.
+
+
+
+# Source-Code
+```ino
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <Servo.h>
+
+const char* ssid = "Mistero-Servo"; // You can change your wifi-name
+const char* password = "MisteroV"; // You can change your password
+Servo myServo;
+
+ESP8266WebServer server(80);
+
+int servoPin = D7;   // GPIO2
+int servoPos = 0;
+#define LED_PIN LED_BUILTIN
+
+void handleRoot() {
+  String html = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mistero-Servo-Control</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    button { font-size: 20px; padding: 15px 30px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Servo Control</h2>
+  <button onclick="fetch('/set?pos=120'); setTimeout(() => { fetch('/set?pos=90'); }, 400);">120°</button>
+  <button onclick="fetch('/set?pos=60'); setTimeout(() => { fetch('/set?pos=90'); }, 400);">60°</button>
+  <h5>Note: It auomatically comes to 90°, You can change the code as you need.</h5>
+  <h5>This code is designed for switch on off function. </h5>
+</body>
+</html>
+)rawliteral";
+
+  server.send(200, "text/html", html);
+}
+
+void handleSet() {
+  if (server.hasArg("pos")) {
+    servoPos = server.arg("pos").toInt();
+    servoPos = constrain(servoPos, 0, 180);
+    myServo.write(servoPos);
+    server.send(200, "text/plain", "Servo set to " + String(servoPos));
+  } else {
+    server.send(400, "text/plain", "Missing position");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH); // LED OFF (active LOW)  // Want to on the onboard led just replace HIGH to LOW
+
+  myServo.attach(servoPin, 500, 2500);
+  myServo.write(90); // Initial position of servo, You can change at your convenience
+
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+
+  server.on("/", handleRoot);
+  server.on("/set", handleSet);
+  server.begin();
+  Serial.println("Web server started");
+}
+
+void loop() {
+  server.handleClient();
+}
+
+
+
+```
+
+
+---
+
+      Copyright (c) [2026] [Mistero]. All rights reserved.
+
+**Summary of Permissions and Restrictions:**
+
+*   **You Are Free To:**
+    *   **Share:** copy and redistribute the material in any medium or format.
+    *   **Adapt:** remix, transform, and build upon the material for any purpose.
+
+*   **Under The Following Terms:**
+    *   **Attribution:** You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+    *   **NonCommercial:** You may not use the material for commercial purposes.
+    *   **ShareAlike:** If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+    *   **No Additional Restrictions:** You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+**Specific Restrictions for Public Code Hosting:**
+
+*   **Public Repository Prohibition:** You are expressly prohibited from uploading, publishing, or otherwise making this code publicly available on any online platform, including but not limited to GitHub, GitLab, and Bitbucket
